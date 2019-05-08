@@ -9,7 +9,7 @@
 (define th-yield
   (lambda ()
     (if(null? th-list)
-       (display '(no thread in the list no need to wait))
+       #t
        (let (
              (cont (call/cc (lambda (c) c))))
          (if (procedure? cont)
@@ -20,7 +20,7 @@
                      (append remaining-th (list cont))))
                (set! th-list new-th-ls)
                (next-th 'next))
-             (display '(end yield)))))))
+             #t)))))
 
 (define th-end
   (lambda ()
@@ -40,9 +40,8 @@
           (begin
             (set! th-list (append th-list (list cont)))
             (th-proc)
-            (display '(continue thread))
             (th-end))
-          'end))))
+          #t))))
 
 (define proc-1
   (lambda ()
