@@ -14,10 +14,10 @@
 
 (define terminate 'terminate)
 
-; This the processes schedule quene, FIFO base
-(define thread-quene '())
+; This the processes schedule queue, FIFO base
+(define thread-queue '())
 
-; This the table for all the processes that are waiting for a signal to move to schedule quene
+; This the table for all the processes that are waiting for a signal to move to schedule queue
 (define wait-table '())
 
 ; Set terminate point when there is no next thread
@@ -27,28 +27,28 @@
       (cont (call/cc (lambda (c) c))))
       (if (procedure? cont)
           (let* (
-                 (next-thread (first thread-quene))
-                 (remaining-thread (rest thread-quene)))
+                 (next-thread (first thread-queue))
+                 (remaining-thread (rest thread-queue)))
             (set! terminate cont)
-            (set! thread-quene remaining-thread)
+            (set! thread-queue remaining-thread)
             (next-thread 'next))
           (display 'terminate)))))
    
 
-; This function will save the current stack of the process and put it at the end of the schedule quene
+; This function will save the current stack of the process and put it at the end of the schedule queue
 (define thread-yield
   (lambda ()
-    (if(null? thread-quene)
+    (if(null? thread-queue)
        (display '(no thread in the list no need to wait))
        (let (
              (cont (call/cc (lambda (c) c))))
          (if (procedure? cont)
              (let* (
-                    (next-thread (first thread-quene))
-                    (remaining-thread (rest thread-quene))
-                    (new-thread-quene
+                    (next-thread (first thread-queue))
+                    (remaining-thread (rest thread-queue))
+                    (new-thread-queue
                      (append remaining-thread (list cont))))
-               (set! thread-quene new-thread-quene)
+               (set! thread-queue new-thread-queue)
                (next-thread 'next))
              (display '(thread continue)))))))
 
@@ -67,27 +67,27 @@
 ; This function save the process stack and put it on wait table, then call the next thread
 (define wait-signal
   (lambda (signal)
-    (if(null? thread-quene)
+    (if(null? thread-queue)
        (terminate 'end)
        (let (
              (cont (call/cc (lambda (c) c))))
          (if (procedure? cont)
              (let* (
-                    (next-thread (first thread-quene))
-                    (remaining-thread (rest thread-quene))
+                    (next-thread (first thread-queue))
+                    (remaining-thread (rest thread-queue))
                     (new-table
                      (new-wait-table signal cont wait-table)))
                (set! wait-table new-table)
-               (set! thread-quene remaining-thread)
+               (set! thread-queue remaining-thread)
                (next-thread 'next))
              (display '(thread continue)))))))
 
-; This function release the process that receive the signal to schedule quene
+; This function release the process that receive the signal to schedule queue
 (define add-proc-list
   (lambda (proc-list)
     (let (
-          (new-thread-quene (append thread-quene proc-list)))
-      (set! thread-quene new-thread-quene))))
+          (new-thread-queue (append thread-queue proc-list)))
+      (set! thread-queue new-thread-queue))))
 
 ; This function generate a wait table that remove entry from wait table with giving signal
 (define remove-signal-table
@@ -106,16 +106,16 @@
            (set! wait-table (remove-signal-table signal wait-table)))
           (else (broadcast signal (rest table))))))
 
-; This function will tell the process is end and call the next process on the schedule quene
-; or exit if there is no more process in the quene
+; This function will tell the process is end and call the next process on the schedule queue
+; or exit if there is no more process in the queue
 (define thread-end
   (lambda ()
-    (if (null? thread-quene)
+    (if (null? thread-queue)
         '(exit)
         (let* (
-               (next-thread (first thread-quene))
-               (remaining-thread (rest thread-quene)))
-          (set! thread-quene remaining-thread)
+               (next-thread (first thread-queue))
+               (remaining-thread (rest thread-queue)))
+          (set! thread-queue remaining-thread)
           (next-thread 'next)))))
 
 ; This function will create thread for the process and save stack of the process using continuaton
@@ -126,7 +126,7 @@
           (cont (call/cc (lambda (c) c))))
       (if (procedure? cont)
           (begin
-            (set! thread-quene (append thread-quene (list cont)))
+            (set! thread-queue (append thread-queue (list cont)))
             (thread-process)
             (thread-end))
           'end))))
